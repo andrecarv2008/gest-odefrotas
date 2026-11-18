@@ -8,7 +8,7 @@ import css from './medias/medias.css?raw';
 import rowsRaw from './medias/rows.json';
 import { saveFile, saveWorkbook } from '@/lib/saveFile';
 import { loadEmbedded } from '@/lib/persist';
-import { kvGet, kvSet } from '@/lib/idbkv';
+import { kvGet, kvSetShared as kvSet } from '@/lib/idbkv';
 import {
   Rec, Ag, fromArr, fromSheet, MES_ABR, MES_FULL, groupBy, kmlOf, cpkOf, metaOf, devOf, mode,
   ganhosPerdas, driverHistory, Driver, zero, add,

@@ -2,6 +2,7 @@ import rowsB64 from './rows.gz.b64.txt?raw';
 import { mapRowsToViagens } from '@/lib/parseRows';
 import { getViagensFromDB, saveViagensToDB, clearViagensFromDB } from '@/lib/db';
 import { loadFromDb, saveToDb, loadEmbedded } from '@/lib/persist';
+import { remoteGet, remoteSet, remoteNotify } from '@/lib/remote';
 
 const FILE_NAME = 'VISAO FROTA - EXTERNA.xlsx';
 const LS = {
@@ -43,6 +44,11 @@ async function loadSession() {
   const dbRes = await loadFromDb();
   if (dbRes) {
     session = dbRes.empty ? { viagens: [], metadata: null, logs: [] } : dbRes.payload;
+    return session!;
+  }
+  const rem = await remoteGet('viagens');
+  if (rem && typeof rem === 'object') {
+    session = rem.empty ? { viagens: [], metadata: null, logs: [] } : { viagens: rem.viagens || [], metadata: rem.metadata || null, logs: rem.logs || [] };
     return session!;
   }
   if (lsGet(LS.flag) === '1') {
@@ -92,6 +98,7 @@ async function handleViagens(method: string, init?: RequestInit) {
     if (log) { logs.unshift(log); logs = logs.slice(0, 50); lsSet(LS.logs, JSON.stringify(logs)); }
     session = { viagens: final, metadata: meta || (session && session.metadata) || null, logs };
     saveToDb({ viagens: final, metadata: session.metadata, logs }).catch(() => {});
+    remoteNotify(await remoteSet('viagens', { viagens: final, metadata: session.metadata, logs }));
     return json({ success: true, count: final.length, metadata: meta, logs });
   }
   if (method === 'DELETE') {
@@ -100,6 +107,7 @@ async function handleViagens(method: string, init?: RequestInit) {
     await clearViagensFromDB().catch(() => {});
     session = { viagens: [], metadata: null, logs: [] };
     saveToDb(null).catch(() => {});
+    remoteNotify(await remoteSet('viagens', { empty: true }));
     return json({ success: true });
   }
   return json({ success: false }, 405);

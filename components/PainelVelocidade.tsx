@@ -1,6 +1,6 @@
 import React from 'react';
 import * as XLSX from 'xlsx';
-import { kvGet, kvSet } from '@/lib/idbkv';
+import { kvGet, kvSetShared as kvSet } from '@/lib/idbkv';
 import { loadEmbedded } from '@/lib/persist';
 import { saveWorkbook } from '@/lib/saveFile';
 
