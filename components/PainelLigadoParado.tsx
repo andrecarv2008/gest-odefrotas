@@ -1,6 +1,8 @@
 import React from 'react';
 import * as XLSX from 'xlsx';
 import { kvGet, kvSetShared as kvSet } from '@/lib/idbkv';
+import rowsMedias from './medias/rows.json';
+import { fromArr as medFromArr } from '@/lib/medias';
 import { loadEmbedded } from '@/lib/persist';
 import { saveWorkbook } from '@/lib/saveFile';
 import { MultiSel } from '@/components/PainelVelocidade';
@@ -9,7 +11,18 @@ import lpB64 from '@/src/lp.gz.b64.txt?raw';
 /* ============ constantes (iguais ao BI) ============ */
 let META_PCT = 0.04;          // regra: até 4% de consumo ligado parado (ajustável no filtro: 3, 4 ou 5%)
 const isFora = (r: Rec) => (r.litTot ? r.litPar / r.litTot > META_PCT : false);
-const PRECO_LITRO = 5.35;     // Impac finan = Excesso Sobre Meta × 5,35
+const PRECO_LITRO = 5.35;     // preço padrão (set–dez/2025 e meses sem dado na aba Médias)
+/** Preço do litro por mês (R$): valor abastecido ÷ litros da aba Médias de Combustível. Set–Dez/2025 ficam em 5,35. */
+let PRECOS: Record<string, number> = {};
+let PRECO_ULT = PRECO_LITRO;
+const precoDe = (m: string) => (m < '2026-01' ? PRECO_LITRO : PRECOS[m] ?? PRECO_ULT);
+function calcPrecos(med: any[]) {
+  const a: Record<string, { v: number; l: number }> = {};
+  for (const x of med) { const r: any = Array.isArray(x) ? medFromArr(x) : x; if (!r || !r.ano || !r.mes || !(r.l > 0) || !(r.v > 0)) continue; const k = `${r.ano}-${String(r.mes).padStart(2, '0')}`; (a[k] ||= { v: 0, l: 0 }); a[k].v += r.v; a[k].l += r.l; }
+  const out: Record<string, number> = {}; Object.keys(a).sort().forEach(k => { if (k >= '2026-01') out[k] = a[k].v / a[k].l; });
+  PRECOS = out; const ks = Object.keys(out).sort(); PRECO_ULT = ks.length ? out[ks[ks.length - 1]] : PRECO_LITRO;
+}
+     // Impac finan = Excesso Sobre Meta × 5,35
 const MAB = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const MFULL = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
 const nf = (n: number, d = 0) => n.toLocaleString('pt-BR', { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -81,8 +94,8 @@ function fromSheet(rows: any[]): Rec[] {
 /* ============ medidas DAX do BI ============ */
 function medidas(l: Rec[]) {
   let km = 0, litTot = 0, litPar = 0, perdaKm = 0, custoTot = 0, custoPar = 0, litMov = 0, custoMov = 0, tempo = 0;
-  const pl = new Set<string>();
-  for (const r of l) { km += r.km; litTot += r.litTot; litPar += r.litPar; perdaKm += r.perdaKm; custoTot += r.custoTot; custoPar += r.custoPar; litMov += r.litMov; custoMov += r.custoMov; tempo += r.tempo; pl.add(r.pl); }
+  let rsPar = 0, rsPerm = 0; const pl = new Set<string>();
+  for (const r of l) { km += r.km; litTot += r.litTot; litPar += r.litPar; perdaKm += r.perdaKm; custoTot += r.custoTot; custoPar += r.custoPar; litMov += r.litMov; custoMov += r.custoMov; tempo += r.tempo; pl.add(r.pl); const pr = precoDe(r.m); rsPar += r.litPar * pr; rsPerm += r.litTot * META_PCT * pr; }
   const pctReal = litTot ? litPar / litTot : 0;                       // % Perda Real
   const meta4 = litTot * META_PCT;                                    // Meta 4% Permitida (L)
   const excesso = litPar - meta4;                                     // Excesso Sobre Meta (L)
@@ -90,7 +103,7 @@ function medidas(l: Rec[]) {
   const kmMeta = km * META_PCT;                                       // KM Meta Permitido (mesmo % da meta)
   const kmPerdReal = litPar * kmL;                                    // KM Perdido Real
   const pctPerdaKm = km ? perdaKm / km : 0;                           // % Perda KM
-  return { km, litTot, litPar, perdaKm, custoTot, custoPar, litMov, custoMov, tempo, placas: pl.size, pctReal, meta4, excesso, impac: excesso * PRECO_LITRO, kmL, kmMeta, kmPerdReal,
+  return { km, litTot, litPar, perdaKm, custoTot, custoPar, litMov, custoMov, tempo, placas: pl.size, pctReal, meta4, excesso, impac: rsPar - rsPerm, rsPar, rsPerm, precoMed: litPar ? rsPar / litPar : PRECO_ULT, kmL, kmMeta, kmPerdReal,
     difKm: kmMeta - kmPerdReal, ppAcima: pctReal - META_PCT, pctPerdaKm, statusDentro: pctReal <= META_PCT };
 }
 
@@ -153,6 +166,7 @@ export default function PainelLigadoParado() {
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => { (async () => {
+    try { let med: any = await kvGet('medias'); if (!(Array.isArray(med) && med.length)) { const e = await loadEmbedded(); med = e && Array.isArray(e.medias) && e.medias.length ? e.medias : rowsMedias; } calcPrecos(med); } catch (e) { console.warn('precos', e); try { calcPrecos(rowsMedias as any[]); } catch {} }
     let saved: any = null; try { saved = await kvGet('lp'); } catch {}
     if (!(Array.isArray(saved) && saved.length)) { try { const e = await loadEmbedded(); if (e && Array.isArray(e.lp)) saved = e.lp; } catch {} }
     if (Array.isArray(saved) && saved.length) { setAll(consolidar(saved.map(fromArr))); return; }
@@ -266,7 +280,7 @@ export default function PainelLigadoParado() {
         </div>
         <Kpi t="Consumo ligado parado (L)" v={nf(M.litPar, 1)} sub={`de ${nf(M.litTot, 0)} L consumidos`} big />
         <Kpi t="Excesso de perda (L)" v={(M.excesso > 0 ? '+' : '') + nf(M.excesso, 1)} sub={`perda permitida (${pct(meta, 0)}): ${nf(M.meta4, 1)} L`} tone={M.excesso > 0 ? C.bad : C.ok} big />
-        <Kpi t="Impacto financeiro" v={brl(M.impac)} sub={`excesso × R$ ${nf(PRECO_LITRO, 2)}/L`} tone={M.impac > 0 ? C.bad : C.ok} big />
+        <Kpi t="Impacto financeiro" v={brl(M.impac)} sub={`excesso × preço do litro do mês (média R$ ${nf(M.precoMed, 2)}/L)`} tone={M.impac > 0 ? C.bad : C.ok} big />
       </div>
       <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(5,minmax(0,1fr))' }}>
         <Kpi t={`Perda permitida (${pct(meta, 0)}) · litros`} v={nf(M.meta4, 1)} sub={`${pct(meta, 0)} do consumo total`} />
@@ -317,17 +331,17 @@ export default function PainelLigadoParado() {
         const exc = M.excesso, tem = exc > 0, permL = Math.min(M.litPar, M.meta4), excL = Math.max(exc, 0);
         const kmPerm = M.meta4 * M.kmL, kmExc = excL * M.kmL;
         const colunas = [
-          { t: 'Permitido', s: `${pct(meta, 0)} do consumo`, l: M.meta4, r: M.meta4 * PRECO_LITRO, k: kmPerm, c: C.ok, bg: '#eef5f1' },
-          { t: 'Consumido parado', s: 'o que realmente foi gasto', l: M.litPar, r: M.litPar * PRECO_LITRO, k: M.kmPerdReal, c: C.blue, bg: '#eef3fb' },
-          { t: tem ? 'Perda além da meta' : 'Folga dentro da meta', s: tem ? 'consumido − permitido' : 'permitido − consumido', l: Math.abs(exc), r: Math.abs(exc) * PRECO_LITRO, k: Math.abs(tem ? kmExc : (M.kmMeta - M.kmPerdReal)), c: tem ? C.bad : C.ok, bg: tem ? '#f8ecec' : '#eef5f1' },
+          { t: 'Permitido', s: `${pct(meta, 0)} do consumo`, l: M.meta4, r: M.rsPerm, k: kmPerm, c: C.ok, bg: '#eef5f1' },
+          { t: 'Consumido parado', s: 'o que realmente foi gasto', l: M.litPar, r: M.rsPar, k: M.kmPerdReal, c: C.blue, bg: '#eef3fb' },
+          { t: tem ? 'Perda além da meta' : 'Folga dentro da meta', s: tem ? 'consumido − permitido' : 'permitido − consumido', l: Math.abs(exc), r: Math.abs(M.impac), k: Math.abs(tem ? kmExc : (M.kmMeta - M.kmPerdReal)), c: tem ? C.bad : C.ok, bg: tem ? '#f8ecec' : '#eef5f1' },
         ];
         return (
           <div className={card + ' p-5'} style={{ borderTop: `3px solid ${tem ? C.bad : C.ok}` }}>
             <div className="text-[10px] font-extrabold tracking-[.18em] uppercase text-slate-500">Resumo para a gerência · {mesLbl}</div>
             <h3 className="text-xl font-black text-[#0b1c30] mt-0.5">{tem ? 'O que perdemos' : 'Dentro da meta'}</h3>
             <p className="text-sm text-slate-600 mt-1 leading-relaxed">
-              {tem ? <>Dos <b>{nf(M.litPar, 0)} L</b> gastos com veículos ligados parados, o permitido era <b>{nf(M.meta4, 0)} L</b> ({pct(meta, 0)} do consumo). Perdemos <b style={{ color: C.bad }}>{nf(exc, 0)} L a mais</b> — <b>{pct(M.litPar ? exc / M.litPar : 0, 0)}</b> do consumo parado —, o equivalente a <b style={{ color: C.bad }}>{brl(exc * PRECO_LITRO)}</b> e <b>{nf(kmExc, 0)} km</b> que o combustível teria rodado.</>
-                : <>O consumo parado ficou <b>{nf(Math.abs(exc), 0)} L abaixo</b> do permitido ({nf(M.meta4, 0)} L). Folga de <b style={{ color: C.ok }}>{brl(Math.abs(exc) * PRECO_LITRO)}</b>.</>}
+              {tem ? <>Dos <b>{nf(M.litPar, 0)} L</b> gastos com veículos ligados parados, o permitido era <b>{nf(M.meta4, 0)} L</b> ({pct(meta, 0)} do consumo). Perdemos <b style={{ color: C.bad }}>{nf(exc, 0)} L a mais</b> — <b>{pct(M.litPar ? exc / M.litPar : 0, 0)}</b> do consumo parado —, o equivalente a <b style={{ color: C.bad }}>{brl(M.impac)}</b> e <b>{nf(kmExc, 0)} km</b> que o combustível teria rodado.</>
+                : <>O consumo parado ficou <b>{nf(Math.abs(exc), 0)} L abaixo</b> do permitido ({nf(M.meta4, 0)} L). Folga de <b style={{ color: C.ok }}>{brl(Math.abs(M.impac))}</b>.</>}
             </p>
             <div className="grid gap-3 mt-4" style={{ gridTemplateColumns: 'repeat(3,minmax(0,1fr))' }}>
               {colunas.map((c, i) => (
@@ -362,13 +376,13 @@ export default function PainelLigadoParado() {
           <div className="grid gap-4" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.25fr)' }}>
             <div className={card + ' p-5'}><h4 className="text-sm font-black text-[#0b1c30]">Perda além da meta por filial</h4><p className="text-[11px] text-slate-500 mb-3">Litros e reais acima do permitido ({pct(meta, 0)}); verde = abaixo da meta</p>
               <div className="space-y-3.5">{excF.map(f => { const bad = f.exc > 0; return (<div key={f.f}>
-                <div className="flex justify-between items-baseline text-xs"><b>Filial {f.f}</b><span className="font-black" style={{ color: bad ? C.bad : C.ok }}>{bad ? '+' : '−'}{nf(Math.abs(f.exc), 0)} L · {brl(Math.abs(f.exc) * PRECO_LITRO)}</span></div>
+                <div className="flex justify-between items-baseline text-xs"><b>Filial {f.f}</b><span className="font-black" style={{ color: bad ? C.bad : C.ok }}>{bad ? '+' : '−'}{nf(Math.abs(f.exc), 0)} L · {brl(Math.abs(f.impac))}</span></div>
                 <div className="h-3 rounded bg-[#eef2f7] mt-1"><div className="h-full rounded" style={{ width: `${(Math.abs(f.exc) / maxF) * 100}%`, background: bad ? C.bad : C.ok }} /></div>
                 <div className="text-[11px] font-semibold text-black mt-0.5">consumiu {nf(f.litPar, 0)} L parado · permitido {nf(f.litTot * meta, 0)} L · {pct(f.pctReal, 1)} do consumo</div></div>); })}</div></div>
             <div className={card + ' p-5'}><h4 className="text-sm font-black text-[#0b1c30]">Placas que mais geraram perda além da meta</h4>
               <p className="text-[11px] text-slate-500 mb-3">Só entram placas acima de {pct(meta, 0)} · {nf(excP.length)} de {nf(porPlaca.length)} placas · as {top.length} primeiras somam {pct(totalExc ? topSum / totalExc : 0, 0)} da perda</p>
               <div className="space-y-2.5">{top.map((p, i) => (<div key={p.pl}>
-                <div className="flex justify-between items-center text-xs"><span><span className="text-slate-400 font-bold mr-1.5">{i + 1}º</span><span className="font-mono font-black bg-[#f1f5f9] rounded px-1.5 py-0.5 text-[11px]">{p.pl}</span> <span className="text-[11px] font-semibold text-black ml-1">Filial {p.fil} · gastou {nf(p.litPar, 0)} L · permitido {nf(p.litTot * meta, 0)} L</span></span><b style={{ color: C.bad }}>+{nf(p.exc, 0)} L · {brl(p.exc * PRECO_LITRO)}</b></div>
+                <div className="flex justify-between items-center text-xs"><span><span className="text-slate-400 font-bold mr-1.5">{i + 1}º</span><span className="font-mono font-black bg-[#f1f5f9] rounded px-1.5 py-0.5 text-[11px]">{p.pl}</span> <span className="text-[11px] font-semibold text-black ml-1">Filial {p.fil} · gastou {nf(p.litPar, 0)} L · permitido {nf(p.litTot * meta, 0)} L</span></span><b style={{ color: C.bad }}>+{nf(p.exc, 0)} L · {brl(p.impac)}</b></div>
                 <div className="h-2 rounded bg-[#eef2f7] mt-1"><div className="h-full rounded" style={{ width: `${(p.exc / maxE) * 100}%`, background: C.bad }} /></div></div>))}
                 {!top.length && <p className="text-sm text-slate-400 font-semibold py-4 text-center">Nenhuma placa acima da meta.</p>}</div></div>
           </div>);
@@ -389,7 +403,7 @@ export default function PainelLigadoParado() {
           { l: '% do consumo total parado', a: A.pctReal, b: B.pctReal, f: n => pct(n, 2), pior: 'alto' },
           { l: `Permitido (${pct(meta, 0)}) em litros`, a: A.litTot * meta, b: B.litTot * meta, f: n => nf(n, 0), pior: null },
           { l: 'Perda além da meta (L)', a: Math.max(A.exc, 0), b: Math.max(B.exc, 0), f: n => nf(n, 0), pior: 'alto' },
-          { l: 'Perda além da meta (R$)', a: Math.max(A.exc, 0) * PRECO_LITRO, b: Math.max(B.exc, 0) * PRECO_LITRO, f: brl, pior: 'alto' },
+          { l: 'Perda além da meta (R$)', a: Math.max(A.impac, 0), b: Math.max(B.impac, 0), f: brl, pior: 'alto' },
           { l: 'Custo total de combustível', a: A.custoTot, b: B.custoTot, f: brl, pior: null },
           { l: 'Consumo total (L)', a: A.litTot, b: B.litTot, f: n => nf(n, 0), pior: null },
           { l: 'Km por litro', a: A.kmL, b: B.kmL, f: n => nf(n, 2), pior: 'baixo' },
@@ -409,7 +423,7 @@ export default function PainelLigadoParado() {
             </div>
 
             <div className="mt-4 rounded-xl p-4 text-sm leading-relaxed" style={{ background: L.d > 0 ? '#f8ecec' : '#eef5f1' }}>
-              A <b>Filial {A.f}</b> consumiu <b style={{ color: L.d > 0 ? C.bad : C.ok }}>{nf(Math.abs(L.d), 0)} L {L.d >= 0 ? 'a mais' : 'a menos'}</b> de combustível parado que a <b>Filial {B.f}</b> (<b>{sinal(L.p)}{nf(Math.abs(L.p) * 100, 0)}%</b>), uma diferença de <b>{brl(Math.abs(L.d) * PRECO_LITRO)}</b>.
+              A <b>Filial {A.f}</b> consumiu <b style={{ color: L.d > 0 ? C.bad : C.ok }}>{nf(Math.abs(L.d), 0)} L {L.d >= 0 ? 'a mais' : 'a menos'}</b> de combustível parado que a <b>Filial {B.f}</b> (<b>{sinal(L.p)}{nf(Math.abs(L.p) * 100, 0)}%</b>), uma diferença de <b>{brl(Math.abs(A.rsPar - B.rsPar))}</b>.
               {' '}Em proporção do consumo, a Filial {A.f} deixa <b>{pct(A.pctReal, 1)}</b> parado contra <b>{pct(B.pctReal, 1)}</b> da Filial {B.f} ({sinal(A.pctReal - B.pctReal)}{nf(Math.abs(A.pctReal - B.pctReal) * 100, 1)} p.p.).
               {' '}Perda além da meta: <b style={{ color: C.bad }}>{nf(Math.max(A.exc, 0), 0)} L</b> contra <b style={{ color: C.bad }}>{nf(Math.max(B.exc, 0), 0)} L</b>.
             </div>
@@ -424,7 +438,7 @@ export default function PainelLigadoParado() {
               <div className="space-y-2.5">
                 {[{ t: 'Mais litros parados', v: `Filial ${ord[0].f}`, s: `${nf(ord[0].litPar, 0)} L · ${nf(ord[0].litPar - ord[ord.length - 1].litPar, 0)} L a mais que a Filial ${ord[ord.length - 1].f}`, c: C.bad },
                   { t: 'Maior % de consumo parado', v: `Filial ${pior.f}`, s: `${pct(pior.pctReal, 1)} do consumo · ${nf((pior.pctReal - bom.pctReal) * 100, 1)} p.p. acima da Filial ${bom.f}`, c: C.bad },
-                  { t: 'Maior perda além da meta', v: `Filial ${maxExc.f}`, s: `${nf(Math.max(maxExc.exc, 0), 0)} L · ${brl(Math.max(maxExc.exc, 0) * PRECO_LITRO)}`, c: C.bad },
+                  { t: 'Maior perda além da meta', v: `Filial ${maxExc.f}`, s: `${nf(Math.max(maxExc.exc, 0), 0)} L · ${brl(Math.max(maxExc.impac, 0))}`, c: C.bad },
                   { t: 'Menor % de consumo parado', v: `Filial ${bom.f}`, s: `${pct(bom.pctReal, 1)} do consumo`, c: C.ok },
                   { t: 'Mais eficiente (km/L)', v: `Filial ${efi.f}`, s: `${nf(efi.kmL, 2)} km por litro`, c: C.ok }].map(x => (
                   <div key={x.t} className="rounded-xl border border-[#e5eaf1] px-3.5 py-2.5" style={{ borderLeft: `4px solid ${x.c}` }}>
