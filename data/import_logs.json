@@ -1,0 +1,11 @@
+[
+  {
+    "id": "log_init_001",
+    "data": "10/06/2026",
+    "hora": "14:32:00",
+    "usuario": "Supervisão Logística",
+    "nomePlanilha": "Consolidado_Viagens_Junho_2026.xlsx",
+    "quantidadeRegistros": 1000,
+    "timestamp": 1781112720000
+  }
+]

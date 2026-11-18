@@ -1,0 +1,32 @@
+[
+  {
+    "id": "VIG_1001",
+    "tipoVeiculo": "20 - TRUCK BAU CARGA SECA",
+    "rota": "3568 - TERESINA X NAZARIA-PI",
+    "placa": "OXW-1115",
+    "motorista": "LENI FERREIRA COSTA",
+    "kmRodado": 240,
+    "valorCarga": 35000,
+    "qtdDias": 2,
+    "mediaDias": 2,
+    "metaViagem": 4,
+    "supervisao": "LEONAN",
+    "qtd": 1,
+    "filial": "338 - ARMAZEM MATEUS S.A. CD 338 ALTOS",
+    "ano": "2026",
+    "mes": "Janeiro",
+    "conhecimento": "7901001",
+    "modeloVeiculo": "20 - TRUCK BAU CARGA SECA",
+    "metaKm": 700,
+    "ganhoPerdaKm": -460,
+    "valorAbastecido": 450,
+    "litros": 75,
+    "valorLitro": 6.0,
+    "metaKmL": 3.5,
+    "kmLRealizado": 3.2,
+    "ganhoPerdaLitro": -6.4,
+    "ganhoPerdaRS": -38.4,
+    "statusMeta": "FORA_DA_META",
+    "despesaOficina": 0
+  }
+]

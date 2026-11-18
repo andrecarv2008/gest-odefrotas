@@ -1,0 +1,127 @@
+<div class="wrap" id="app">
+  <header class="top">
+    <div class="brand">
+      <div>
+        <div class="eyebrow"><span class="tag blue">FROTA LOG • EXECUTIVE BI</span><span class="tag" id="nreg">—</span></div>
+        <h1>COMPARATIVO DE DESPESAS - FROTA X TERCEIRO</h1>
+        <div class="sub"><span class="f">FROTA PRÓPRIA</span><span class="x">×</span><span class="t">TERCEIROS</span><span class="x">|</span><span class="yrs" id="yrs">2025 × 2026</span></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn pri" id="bImp" type="button"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M4 17v3h16v-3"/></svg><span>Importar XLS</span></button>
+      <input type="file" id="fImp" accept=".xlsx,.xls,.xlsm" hidden>
+      <button class="btn" id="bMod" type="button" hidden><svg class="ico" viewBox="0 0 24 24"><path d="M12 15V3M7 10l5 5 5-5M4 17v3h16v-3"/></svg><span class="t2">Modelo XLSX</span></button>
+      <button class="btn ok" id="bExp" type="button" hidden><svg class="ico" viewBox="0 0 24 24"><path d="M14 3H6v18h12V7zM14 3v4h4M9 13h6M9 17h6"/></svg><span>Exportar Excel</span></button>
+      <button class="btn" id="bPrint" type="button" title="Gerar imagem (PNG) do painel"><svg class="ico" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span>Print</span></button>
+      <button class="btn sq" id="bReset" type="button" title="Voltar à base original" aria-label="Voltar à base original"><svg class="ico" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg></button>
+      <div class="stamp"><svg class="ico" viewBox="0 0 24 24" style="width:15px;height:15px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="stamp">—</span></div>
+    </div>
+  </header>
+
+  <section class="panel filters" aria-label="Filtros">
+    <div class="fhead">
+      <div class="ftitle"><svg class="ico" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>Filtros superiores</div>
+      <div class="fsearch">
+        <button class="btn" id="bFold" type="button" aria-expanded="true" aria-controls="fbody" style="height:38px"><svg class="ico" id="foldIco" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M6 15l6-6 6 6"/></svg><span id="foldTxt">Recolher</span></button>
+        <label class="input"><svg class="ico" viewBox="0 0 24 24" style="width:16px;height:16px"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Buscar palavra-chave..." aria-label="Buscar palavra-chave"></label>
+        <button class="btn" id="bClear" type="button" style="height:38px"><svg class="ico" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>Limpar Filtros</button>
+      </div>
+    </div>
+    <div id="fbody"><div class="fgrid" id="fgrid"></div>
+    <div class="opts">
+      <div class="optl"><b>Comparação</b>
+        <div class="seg" id="segCmp"><button type="button" data-v="same" aria-pressed="true">Mesmo período</button><button type="button" data-v="full" aria-pressed="false">Ano completo</button></div>
+      </div>
+      <div class="optl"><b>Despesas de fev/2026</b>
+        <div class="seg" id="segBad"><button type="button" data-v="excl" aria-pressed="true">Excluir</button><button type="button" data-v="incl" aria-pressed="false">Incluir</button></div>
+      </div>
+      <div class="optl" id="cmpNote"></div>
+    </div></div>
+    <div class="fsum" id="fsum" hidden></div>
+  </section>
+
+  <nav class="tabs" id="mainTabs" role="tablist" aria-label="Seções do painel">
+    <button type="button" role="tab" data-p="ov" aria-selected="true">Visão geral</button>
+    <button type="button" role="tab" data-p="rk" aria-selected="false">Ranking</button>
+  </nav>
+  <div id="pgOv" class="stack">
+  <div class="notice" id="badNote" hidden></div>
+
+  <section aria-label="Faturamento e despesas">
+    <div class="sechead" style="margin-bottom:12px">
+      <div class="l"><div class="sico"><svg class="ico" viewBox="0 0 24 24"><path d="M12 2v20M17 6.5C16 5 14 4.5 12 4.5c-2.5 0-4.5 1.2-4.5 3s1.8 2.6 4.5 3 4.5 1.2 4.5 3-2 3-4.5 3c-2.2 0-4.2-.7-5-2.5"/></svg></div>
+        <div><h2 id="kTitle">Faturamento Operacional (Frota × Terceiros)</h2><p id="kSub">Indicadores consolidados de receita bruta</p></div></div>
+      <div class="seg" id="segView"><button type="button" data-v="fat" aria-pressed="true">Faturamento</button><button type="button" data-v="desp" aria-pressed="false">Despesas</button></div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section class="grid3">
+    <div class="panel card main">
+      <div class="sechead">
+        <div class="l"><div class="sico softb"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg></div>
+          <div><h2>COMPARATIVO DE CUSTO OPERACIONAL</h2><p id="mSub">Faturamento e despesas da Frota × faturamento de Terceiros</p></div></div>
+        <div class="seg" id="segTab"><button type="button" data-v="t" aria-pressed="true">Quadro Comparativo</button><button type="button" data-v="g" aria-pressed="false">Gráfico</button></div>
+      </div>
+      <div id="tabView" class="scroll"></div>
+      <div id="chView" hidden><div class="chtitle">Faturamento por mês: Frota × Terceiros</div><div class="chartbox"><canvas id="cvBar" role="img" aria-label="Faturamento mensal de Frota Própria e Terceiros"></canvas></div><div class="chtitle">Despesas da Frota por mês</div><div class="chartbox short"><canvas id="cvBar2" role="img" aria-label="Despesas mensais da Frota Própria"></canvas></div></div>
+      <div class="resumo" id="resumo"></div>
+      <div class="tip">Dica: clique em qualquer mês da tabela para filtrar todo o painel por aquele mês.</div>
+    </div>
+    <div class="panel card">
+      <div class="sechead"><div class="l"><div class="sico softg"><svg class="ico" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg></div>
+        <div><h2 id="dTitle">DISTRIBUIÇÃO DAS DESPESAS</h2><p id="dSub">Participação por categoria</p></div></div></div>
+      <div class="donut"><canvas id="cvDon" role="img" aria-label="Distribuição da despesa por categoria"></canvas><div class="mid"><small id="dYear">TOTAL</small><b id="dTot">—</b></div></div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="panel card">
+      <div class="sechead"><div class="l"><div class="sico soft"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg></div>
+        <div><h2>QUADRO COMPARATIVO</h2><p id="qSub">Frota × Terceiros</p></div></div></div>
+      <div class="scroll" id="quadro"></div>
+    </div>
+    <div class="panel card">
+      <div class="sechead"><div class="l"><div class="sico softb"><svg class="ico" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg></div>
+        <div><h2>DESPESAS POR TIPO</h2><p id="q2Sub">Participação e variação</p></div></div></div>
+      <div class="scroll" id="quadro2"></div>
+      <div class="qfoot"><span class="g">Verde: Redução de Custo</span><span class="r">Vermelho: Aumento</span></div>
+    </div>
+  </section>
+
+  <section class="ind" aria-label="Indicadores operacionais">
+    <div class="indbox f"><h3><span style="display:flex;gap:8px;align-items:center"><svg class="ico" viewBox="0 0 24 24"><path d="M1 6h13v10H1zM14 9h4l3 3v4h-7"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Indicadores operacionais frota própria</span><span class="pill">Frota Própria</span></h3><div class="mini" id="indF"></div></div>
+    <div class="indbox t"><h3><span style="display:flex;gap:8px;align-items:center"><svg class="ico" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></svg>Indicadores operacionais terceiros</span><span class="pill">Despesa = frete pago</span></h3><div class="mini" id="indT"></div></div>
+  </section>
+
+  <section class="grid2">
+    <div class="panel card">
+      <div class="sechead"><div class="l"><div class="sico softb"><svg class="ico" viewBox="0 0 24 24"><path d="M1 6h13v10H1zM14 9h4l3 3v4h-7"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div>
+        <div><h2 id="fdTitle">DESPESAS OPERACIONAIS – FROTA PRÓPRIA (R$)</h2><p>Demonstrativo por categoria de custo da frota própria</p></div></div>
+        <label class="input"><svg class="ico" viewBox="0 0 24 24" style="width:16px;height:16px"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="qd" type="search" placeholder="Filtrar despesa..." aria-label="Filtrar despesa"></label></div>
+      <div class="scroll"><table class="dt" id="tF"></table></div>
+    </div>
+    <div class="panel card">
+      <div class="sechead"><div class="l"><div class="sico softg"><svg class="ico" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></svg></div>
+        <div><h2>TERCEIROS – INDICADORES OPERACIONAIS</h2><p>Faturamento, frete pago (despesa), viagens e participação</p></div></div></div>
+      <div class="scroll"><table class="dt tg" id="tT"></table></div>
+      <div class="foot2" id="tFoot"></div>
+    </div>
+  </section>
+  </div>
+  <div id="pgRk" class="stack" hidden>
+    <section class="panel card">
+      <div class="sechead">
+        <div class="l"><div class="sico softb"><svg class="ico" viewBox="0 0 24 24"><path d="M6 20V10M12 20V4M18 20v-7"/></svg></div>
+          <div><h2>RANKING DE DESPESAS E FATURAMENTO</h2><p id="rkSub">Filial</p></div></div>
+        <label class="input"><svg class="ico" viewBox="0 0 24 24" style="width:16px;height:16px"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="rkq" type="search" placeholder="Buscar no ranking..." aria-label="Buscar no ranking"></label>
+      </div>
+      <div class="rkctl"><div class="optl"><b>Agrupar por</b>
+        <div class="seg" id="segRk"><button type="button" data-v="filial" aria-pressed="true">Filial</button><button type="button" data-v="rota" aria-pressed="false">Rota</button><button type="button" data-v="drv" aria-pressed="false">Motorista</button><button type="button" data-v="placa" aria-pressed="false">Placa</button><button type="button" data-v="tveic" aria-pressed="false">Tipo de veículo</button><button type="button" data-v="bloco" aria-pressed="false">Bloco</button></div></div>
+        <div class="rksum" id="rkSum"></div></div>
+      <div class="scroll rkscroll"><table class="dt rk" id="tRk"></table></div>
+      <div class="tip" id="rkNote"></div>
+    </section>
+  </div>
+  <div class="fnote" id="fnote"></div>
+</div>
+<div class="toast" id="toast" hidden></div>
+

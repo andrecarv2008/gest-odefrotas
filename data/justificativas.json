@@ -1,0 +1,34 @@
+{
+  "BWP-5980_Março": {
+    "placa": "BWP-5980",
+    "mes": "Março",
+    "justificativa": "EM OFICINA A 15 DIAS",
+    "categoria": "OFICINA",
+    "dataAtualizacao": "02/09/2026 às 13:00",
+    "usuario": "Supervisão de Frota"
+  },
+  "BWP-5980": {
+    "placa": "BWP-5980",
+    "mes": "Março",
+    "justificativa": "EM OFICINA A 15 DIAS",
+    "categoria": "OFICINA",
+    "dataAtualizacao": "02/09/2026 às 13:00",
+    "usuario": "Supervisão de Frota"
+  },
+  "CYR-2944_Março": {
+    "placa": "CYR-2944",
+    "mes": "Março",
+    "justificativa": "AGUARDANDO PEÇA DE REPOSIÇÃO (CÂMBIO)",
+    "categoria": "OFICINA",
+    "dataAtualizacao": "02/09/2026 às 11:30",
+    "usuario": "Manutenção Externa"
+  },
+  "NHP-5842_Março": {
+    "placa": "NHP-5842",
+    "mes": "Março",
+    "justificativa": "VEÍCULO RESERVA NO PÁTIO CD 338",
+    "categoria": "RESERVA",
+    "dataAtualizacao": "01/09/2026 às 16:20",
+    "usuario": "Operações Logísticas"
+  }
+}

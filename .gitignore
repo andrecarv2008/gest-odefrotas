@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.png
+*.webm
+*.mp4
+artifact.html
+test.html
+admin.html
+viewer.html
+viewer_test.html
+.DS_Store
+saved.html
+*.tsbuildinfo
+shim/*.mjs
