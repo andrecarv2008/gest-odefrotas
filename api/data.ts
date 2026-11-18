@@ -4,6 +4,8 @@
 //   DELETE /api/data?key=lp      -> idem
 import { put, get, del } from '@vercel/blob';
 
+declare const process: { env: Record<string, string | undefined> };
+
 const KEYS = new Set(['viagens', 'medias', 'vel', 'lp', 'despesas']);
 type Acc = 'private' | 'public';
 let acc: Acc | null = (process.env.BLOB_ACCESS as Acc) || null; // detectado automaticamente
